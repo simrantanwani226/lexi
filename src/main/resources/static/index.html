@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickMatch - Resume and Job Description Matcher</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #e9ecef;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QuickMatch</h1>
+        <textarea id="resume" placeholder="Paste resume text here..."></textarea>
+        <textarea id="jobDescription" placeholder="Paste job description text here..."></textarea>
+        <button onclick="matchResume()">Compare</button>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        function matchResume() {
+            const resumeText = document.getElementById('resume').value;
+            const jobDescriptionText = document.getElementById('jobDescription').value;
+
+            if (resumeText.trim() === '' || jobDescriptionText.trim() === '') {
+                alert('Please provide both resume and job description text.');
+                return;
+            }
+
+            axios.post('/resumes', { content: resumeText })
+                .then(response => {
+                    const resumeId = response.data.id;
+                    return axios.post('/jobs', { content: jobDescriptionText })
+                        .then(jobResponse => {
+                            const jobId = jobResponse.data.id;
+                            return axios.get(`/resumes/${resumeId}/match/${jobId}`);
+                        });
+                })
+                .then(matchResponse => {
+                    const matchScore = matchResponse.data;
+                    document.getElementById('result').innerText = `Match Score: ${(matchScore * 100).toFixed(2)}%`;
+                })
+                .catch(error => {
+                    console.error('There was an error!', error);
+                    document.getElementById('result').innerText = 'An error occurred. Please try again.';
+                });
+        }
+    </script>
+</body>
+</html>
