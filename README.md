@@ -1,33 +1,68 @@
-###QuickMatch: Resume Matching Application
-QuickMatch is a web application designed to facilitate the matching of job seekers with relevant job listings based on resume analysis. It leverages HTML, CSS, Java, and Spring Boot for its development.
+# QuickMatch
 
-##Features
-Resume Parsing: Automatically extracts key skills and experiences from uploaded resumes.
-Job Listing Analysis: Analyzes job descriptions to identify required skills and qualifications.
-Matching Algorithm: Matches job seekers with job listings based on skill set similarity.
-User Dashboard: Provides an intuitive interface for job seekers and employers to manage profiles and job listings.
-##Technologies Used
-Frontend: HTML, CSS, Bootstrap
-Backend: Java, Spring Boot
-Database: (Specify your database if applicable)
-Additional Tools/Libraries: (Any additional tools or libraries used)
-##Installation
-To run QuickMatch locally, follow these steps:
+A small Spring Boot service that scores how well a resume matches a job
+description, exposed as a REST API. Resumes and job descriptions are persisted
+with Spring Data JPA (H2 in-memory database), and a matching service computes an
+overlap score between the two texts.
 
-Clone the repository: git clone <repository-url>
-Navigate to the project directory: cd QuickMatch
-(Add any specific instructions for setting up the database or environment)
-Build the project: ./mvnw clean install (for Maven)
-Run the application: ./mvnw spring-boot:run
-##Usage
-Access the application at http://localhost:8080 in your web browser.
-Job seekers can upload their resumes and view matched job listings.
-Employers can add job listings and view matched job seekers.
-##Contributing
-Contributions are welcome! If you have suggestions or feature requests, please open an issue or submit a pull request.
+## Tech stack
 
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
+- Java 11, Spring Boot 2.5.4
+- Spring Web (REST), Spring Data JPA
+- H2 in-memory database
 
-Acknowledgments
-Inspired by the need to simplify the job matching process for both job seekers and employers.
+## Architecture
+
+```
+controller/   ResumeController, JobDescriptionController   REST endpoints
+service/      MatchService                                 match scoring
+repository/   ResumeRepository, JobDescriptionRepository   Spring Data JPA
+model/        Resume, JobDescription                       JPA entities
+```
+
+## How matching works
+
+`MatchService` normalizes each text (lowercase, strip punctuation), reduces it to
+a set of unique words, and returns the percentage of the job description's words
+that also appear in the resume, capped at 100%. It is a simple keyword-overlap
+score, not an ML model.
+
+## Running
+
+```bash
+./mvnw spring-boot:run
+# starts on http://localhost:8082
+```
+
+H2 console: `http://localhost:8082/h2-console` (JDBC URL `jdbc:h2:mem:testdb`, user `sa`).
+
+## API
+
+| Method | Path                          | Body                   | Returns                    |
+|--------|-------------------------------|------------------------|----------------------------|
+| `POST` | `/resumes`                    | `{ "content": "..." }` | created Resume (with `id`) |
+| `POST` | `/jobs`                       | `{ "content": "..." }` | created JobDescription     |
+| `GET`  | `/resumes/{id}/match/{jobId}` | —                      | match score `0`–`100`      |
+
+### Example
+
+```bash
+# create a resume
+curl -X POST http://localhost:8082/resumes \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"java spring boot postgres rest api"}'
+
+# create a job description
+curl -X POST http://localhost:8082/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"looking for a java spring developer with rest api experience"}'
+
+# score resume 1 against job 1
+curl http://localhost:8082/resumes/1/match/1
+```
+
+## Tests
+
+```bash
+./mvnw test
+```
